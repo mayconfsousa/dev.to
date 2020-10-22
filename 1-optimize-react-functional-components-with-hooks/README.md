@@ -6,7 +6,7 @@ There's no doubt that [Hooks](https://reactjs.org/docs/hooks-reference.html) are
 
 One important concern that we have to do when developing applications, in general, is performance.
 
-React already has a ["diffing"](https://reactjs.org/docs/reconciliation.html) algorithm to avoid unnecessary DOM render, but in some cases, we want to avoid unnecessary executions of the component's `rendering function` to increase performance. In the case of functional components, `render function` is itself.
+React already has a ["diffing"](https://reactjs.org/docs/reconciliation.html) algorithm to avoid unnecessary DOM render, but in some cases, we want to avoid unnecessary executions of the component's `render function` to increase performance. In the case of functional components, `render function` is itself.
 
 I created the following project to demonstrate how we can optimize React functional components with Hooks:
 
