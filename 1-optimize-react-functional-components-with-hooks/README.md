@@ -1,0 +1,126 @@
+# Optimize React functional components with Hooks
+
+`react`, `javascript`, `typescript`, `webdev`
+
+There's no doubt that [Hooks](https://reactjs.org/docs/hooks-reference.html) are one of the most exciting features of the last [React](https://reactjs.org) updates. They let we work in a project without writing class-based components, allowing use of state and other features.
+
+One important concern that we have to do when developing applications, in general, is performance.
+
+React already has a ["diffing"](https://reactjs.org/docs/reconciliation.html) algorithm to avoid unnecessary DOM render, but in some cases, we want to avoid unnecessary executions of the component's `rendering function` to increase performance. In the case of functional components, `render function` is itself.
+
+I created the following project to demonstrate how we can optimize React functional components with Hooks:
+
+## The application
+
+![The application](https://dev-to-uploads.s3.amazonaws.com/i/4xr7vj9uhtlv57xyw4rz.png)
+
+This application is simple!
+
+* `Home` is the root component;
+* `Component1` displays the current `name`;
+* `Component2` displays the current `surname`;
+* The root component has a input field for `name` and another for `surname`;
+* The root component stores the `name` and `surname` in a local state (using `useState` hook);
+* The root component pass down the property `name` to `Component1` and `surname` to `Component2`;
+
+> Code:
+
+```tsx
+// ./src/pages/index.tsx
+
+import React, { useState } from 'react';
+
+import { Component1, Component2 } from '../components';
+
+export default function Home() {
+  const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
+
+  return (
+    <div className="container">
+      <label>Name: </label>
+      <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+      <label>Surname: </label>
+      <input type="text" value={surname} onChange={(e) => setSurname(e.target.value)} />
+      <Component1 name={name} />
+      <Component2 surname={surname} />
+    </div>
+  );
+}
+```
+
+```tsx
+// ./src/components/Component1.tsx
+
+import React from 'react';
+
+interface Props {
+  name: string;
+}
+
+export default function Component1({ name }: Props) {
+  console.log('Component1 :: render', { name });
+
+  return (
+    <div>
+      <label>Component1: </label>
+      <p>Name: {name}</p>
+    </div>
+  );
+}
+```
+
+```tsx
+// ./src/components/Component2.tsx
+
+import React from 'react';
+
+interface Props {
+  surname: string;
+}
+
+export default function Component2({ surname }: Props) {
+  console.log('Component2 :: render', { surname });
+
+  return (
+    <div>
+      <label>Component2: </label>
+      <p>Surname: {surname}</p>
+    </div>
+  );
+}
+
+```
+
+## The first problem
+
+I put a `console.log` in the `Component1` and `Component2` to print the properties on them.
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/f5045w7lk1wosspvxb8p.png)
+
+So, after typing my name, see what happened!
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/25b4sce5pffre4ban434.png)
+
+`Component2` prints the `console.log` message indicating that it was executed unnecessary. The `surname` property value is empty all the time.
+
+To solve this problem, we just need to use [React.memo](https://reactjs.org/docs/react-api.html#reactmemo)!
+
+`React.memo` is a [higher-order component](https://reactjs.org/docs/higher-order-components.html) and it allows a component to be rendered only if the properties are changed.
+
+```tsx
+// ./src/components/Component2.tsx
+
+...
+
+function Component2({ surname }: Props) {
+  ...
+}
+
+export default React.memo(Component2);
+
+```
+
+So, after the change!
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/anax0kjgbeg91hho8qoc.png)
