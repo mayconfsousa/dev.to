@@ -1,0 +1,20 @@
+.container {
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 16px;
+  width: 400px;
+}
+
+.container label {
+  font-weight: bold;
+}
+
+.container input[type='text'] {
+  width: 100%;
+  padding: 8px 16px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
