@@ -10,9 +10,9 @@ React already has a ["diffing"](https://reactjs.org/docs/reconciliation.html) al
 
 I created the following project to demonstrate how we can optimize React functional components with Hooks:
 
-## The application
+## 1. The application
 
-![The application](https://dev-to-uploads.s3.amazonaws.com/i/4xr7vj9uhtlv57xyw4rz.png)
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/4xr7vj9uhtlv57xyw4rz.png)
 
 This application is simple!
 
@@ -89,10 +89,9 @@ export default function Component2({ surname }: Props) {
     </div>
   );
 }
-
 ```
 
-## The first problem
+## 2. The first problem
 
 I put a `console.log` in the `Component1` and `Component2` to print the properties on them.
 
@@ -104,7 +103,9 @@ So, after typing my name, see what happened!
 
 `Component2` prints the `console.log` message indicating that it was executed unnecessary. The `surname` property value is empty all the time.
 
-To solve this problem, we just need to use [React.memo](https://reactjs.org/docs/react-api.html#reactmemo)!
+### 2.1. Solution
+
+To resolve this problem, we just need to use [React.memo](https://reactjs.org/docs/react-api.html#reactmemo)!
 
 `React.memo` is a [higher-order component](https://reactjs.org/docs/higher-order-components.html) and it allows a component to be rendered only if the properties are changed.
 
@@ -118,9 +119,181 @@ function Component2({ surname }: Props) {
 }
 
 export default React.memo(Component2);
-
 ```
 
-So, after the change!
+So, after the change...
 
 ![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/anax0kjgbeg91hho8qoc.png)
+
+## 3. The second problem
+
+See what happened when I added a property `data` of the type `object` in the `Component2`.
+
+```tsx
+// ./src/components/Component2.tsx
+
+import React from 'react';
+
+interface Props {
+  surname: string;
+  data: Record<string, unknown>;
+}
+
+function Component2({ surname, data }: Props) {
+  console.log('Component2 :: render', { surname, data });
+
+  return (
+    <div>
+      <label>Component2: </label>
+      <p>Surname: {surname}</p>
+      <p>Data: {JSON.stringify(data)}</p>
+    </div>
+  );
+}
+
+export default React.memo(Component2);
+```
+
+```tsx
+// ./src/pages/index.tsx
+
+...
+
+<Component2 surname={surname} data={{}} />
+```
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/o063v7qfrkw8hc2q1mqv.png)
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/t4rlohfjirjlf4nz052g.png)
+
+`Component2` prints the `console.log` message indicating that it was executed unnecessary.
+
+AGAIN !!!
+
+Even if I declare the following way, same problem occurs...
+
+```tsx
+// ./src/pages/index.tsx
+
+...
+
+const data = {};
+
+...
+
+<Component2 surname={surname} data={data} />
+```
+
+Why ???
+
+How to resolve this?
+
+### 3.1. Solution
+
+One thing about `React.memo` is that, by default, it will only shallowly compare complex objects in the props object.
+
+Well, every time that the root component renders because state changes, a new instance of object `{}` was created and pass down to `Component2`. The shallow comparison of the `React.memo` detects that the object is different and re-render the `Component2`.
+
+To resolve this problem, React provides a hook called [useMemo](https://reactjs.org/docs/hooks-reference.html#usememo). This function receives two arguments, a "create" function and an array of dependencies. `useMemo` will only execute the "create" function to return a new instance of the data when one of the dependencies has changed.
+
+Let's update the code...
+
+```tsx
+// ./src/pages/index.tsx
+
+import React, { useMemo, useState } from 'react';
+
+...
+
+const data = useMemo(() => ({ surname }), [surname]);
+
+...
+
+<Component2 surname={surname} data={data} />
+```
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/anax0kjgbeg91hho8qoc.png)
+
+It's all OK now!
+
+## 4. The last problem
+
+See what happened when I added a property `func` of the type `function` in the `Component2`.
+
+```tsx
+// ./src/components/Component2.tsx
+
+import React from 'react';
+
+interface Props {
+  surname: string;
+  data: Record<string, unknown>;
+  func: () => void;
+}
+
+function Component2({ surname, data, func }: Props) {
+  console.log('Component2 :: render', { surname, data, func });
+
+  return (
+    <div>
+      <label>Component2: </label>
+      <p>Surname: {surname}</p>
+      <p>Data: {JSON.stringify(data)}</p>
+    </div>
+  );
+}
+
+export default React.memo(Component2);
+```
+
+```tsx
+// ./src/pages/index.tsx
+
+...
+
+<Component2 surname={surname} data={data} func={() => undefined} />
+```
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/o063v7qfrkw8hc2q1mqv.png)
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/wmudnjovlriiyi9tztiz.png)
+
+`Component2` still prints the `console.log` message...
+
+The reason is the same as the previous topic. A new instance of the passed function is created every time that the state changes.
+
+### 4.1. Solution
+
+To resolve this problem, React provides a hook called [useCallback](https://reactjs.org/docs/hooks-reference.html#usecallback). This function receives two arguments, a function and an array of dependencies. The operation is similiar to `useMemo`. `useCallback` will only create a new instance of the function when one of the dependencies has changed.
+
+The final code...
+
+```tsx
+import React, { useCallback, useMemo, useState } from 'react';
+
+import { Component1, Component2 } from '../components';
+
+export default function Home() {
+  const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
+
+  const data = useMemo(() => ({ surname }), [surname]);
+
+  const func = useCallback(() => undefined, []);
+
+  return (
+    <div className="container">
+      <label>Name: </label>
+      <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+      <label>Surname: </label>
+      <input type="text" value={surname} onChange={(e) => setSurname(e.target.value)} />
+      <Component1 name={name} />
+      <Component2 surname={surname} data={data} func={func} />
+    </div>
+  );
+}
+```
+
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/anax0kjgbeg91hho8qoc.png)
+
+That's all folks!
